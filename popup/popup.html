@@ -7,19 +7,54 @@
 </head>
 <body>
   <div class="container">
-    <h2>CyberShield</h2>
-    <p>Real-Time Phishing Detection</p>
-    
+    <div class="header">
+      <h2>&#128737; CyberShield</h2>
+      <p class="subtitle">AI Phishing Detection v3.0 | 30 Features</p>
+    </div>
+
     <div class="url-box">
-      <strong>Current Website:</strong>
+      <strong>&#128279; Current Website:</strong>
       <p id="current-url">Loading...</p>
     </div>
-    
+
     <div class="status-box" id="status-box">
+      <div class="status-icon" id="status-icon">&#128270;</div>
       <p id="status-message">Ready to scan</p>
+      <p class="confidence-text" id="confidence-text"></p>
     </div>
-    
-    <button id="scan-btn">Scan URL</button>
+
+    <div class="features-box" id="features-box" style="display: none;">
+      <strong>&#128202; URL Analysis (30 Features):</strong>
+      <table id="features-table">
+        <tr><td>URL Length</td><td id="feat-url-length">-</td></tr>
+        <tr><td>Domain Length</td><td id="feat-domain-length">-</td></tr>
+        <tr><td>Path Length</td><td id="feat-path-length">-</td></tr>
+        <tr><td>Query Length</td><td id="feat-query-length">-</td></tr>
+        <tr><td>HTTPS</td><td id="feat-https">-</td></tr>
+        <tr><td>Dots (Total)</td><td id="feat-dots">-</td></tr>
+        <tr><td>Dots (Domain)</td><td id="feat-dots-domain">-</td></tr>
+        <tr><td>Hyphens</td><td id="feat-hyphens">-</td></tr>
+        <tr><td>Underscores</td><td id="feat-underscores">-</td></tr>
+        <tr><td>Slashes</td><td id="feat-slashes">-</td></tr>
+        <tr><td>Digits</td><td id="feat-digits">-</td></tr>
+        <tr><td>Digit Ratio</td><td id="feat-digit-ratio">-</td></tr>
+        <tr><td>Subdomains</td><td id="feat-subdomains">-</td></tr>
+        <tr><td>IP Address</td><td id="feat-ip">-</td></tr>
+        <tr><td>@ Symbol</td><td id="feat-at">-</td></tr>
+        <tr><td>Double Slash</td><td id="feat-double-slash">-</td></tr>
+        <tr><td>Domain Hyphen</td><td id="feat-domain-hyphen">-</td></tr>
+        <tr><td>Suspicious Words</td><td id="feat-suspicious">-</td></tr>
+        <tr><td>HTTP in Path</td><td id="feat-http-path">-</td></tr>
+        <tr><td>Brand in Domain</td><td id="feat-brand">-</td></tr>
+        <tr><td>URL Shortener</td><td id="feat-shortened">-</td></tr>
+        <tr><td>URL Entropy</td><td id="feat-url-entropy">-</td></tr>
+        <tr><td>Domain Entropy</td><td id="feat-domain-entropy">-</td></tr>
+        <tr><td>Suspicious TLD</td><td id="feat-suspicious-tld">-</td></tr>
+      </table>
+    </div>
+
+    <button id="scan-btn">&#128270; Scan URL</button>
+    <p class="footer-text">CyberShield v3.0 | Random Forest AI | 30 Features</p>
   </div>
   <script src="popup.js"></script>
 </body>

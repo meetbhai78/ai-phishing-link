@@ -45,13 +45,14 @@ The project is a multi-platform security solution composed of:
   - [x] Test model accuracy and save as `.pkl`.
 
 - **Week 4: Backend API Integration**
-  - [ ] Set up FastAPI backend.
-  - [ ] Load the `.pkl` ML model into the API.
-  - [ ] Expose an endpoint (e.g., `/predict`) receiving JSON URLs.
-  - [ ] Connect the Browser Extension (`popup.js`) to call this API via `fetch()`.
+  - [x] Set up FastAPI backend.
+  - [x] Load the `.pkl` ML model into the API.
+  - [x] Expose an endpoint (e.g., `/predict`) receiving JSON URLs.
+  - [x] Connect the Browser Extension (`popup.js`) to call this API via `fetch()`.
 
 ### 🚧 Phase 3 (Pending)
-- **Week 5: Android App Setup**
+- **Week 5: Content Detection & Android App Setup**
+  - [ ] Implement Content-Based Detection (Web Scraping bot for page titles, login forms) in FastAPI.
   - [ ] Initialize Flutter project.
   - [ ] Create UI for URL scanning and QR code scanning.
   - [ ] Connect mobile app to the FastAPI backend.
