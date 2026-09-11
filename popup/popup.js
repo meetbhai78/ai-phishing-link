@@ -1,6 +1,6 @@
 // ==========================================
-// CyberShield - Popup Script (v3.0)
-// 30 Advanced Features
+// CyberShield - Popup Script (v3.7)
+// 30 Features + Robot + SSL + Threat Category
 // ==========================================
 
 const API_URL = "http://127.0.0.1:8000/predict";
@@ -8,32 +8,41 @@ const API_URL = "http://127.0.0.1:8000/predict";
 document.addEventListener('DOMContentLoaded', function () {
 
   chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-    let currentUrl = tabs[0].url;
-    document.getElementById("current-url").innerText = currentUrl;
+    if (tabs && tabs.length > 0) {
+      let currentUrl = tabs[0].url;
+      document.getElementById("current-url").innerText = currentUrl;
+    }
   });
 
   document.getElementById("scan-btn").addEventListener("click", function () {
-    let statusBox     = document.getElementById("status-box");
-    let statusIcon    = document.getElementById("status-icon");
-    let statusMessage = document.getElementById("status-message");
+    let statusBox      = document.getElementById("status-box");
+    let statusIcon     = document.getElementById("status-icon");
+    let statusMessage  = document.getElementById("status-message");
     let confidenceText = document.getElementById("confidence-text");
-    let featuresBox   = document.getElementById("features-box");
-    let scanBtn       = document.getElementById("scan-btn");
-    let urlToScan     = document.getElementById("current-url").innerText;
+    let categoryBadge  = document.getElementById("category-badge");
+    let sslBox         = document.getElementById("ssl-box");
+    let featuresBox    = document.getElementById("features-box");
+    let robotBox       = document.getElementById("robot-box");
+    let robotSignals   = document.getElementById("robot-signals-box");
+    let scanBtn        = document.getElementById("scan-btn");
+    let urlToScan      = document.getElementById("current-url").innerText;
 
     // Scanning state
-    statusBox.className       = "status-box status-scanning";
-    statusIcon.innerText      = "...";
-    statusMessage.innerText   = "Analyzing with AI Model (30 features)...";
-    confidenceText.innerText  = "Please wait...";
-    featuresBox.style.display = "none";
-    scanBtn.disabled          = true;
-    scanBtn.innerText         = "Scanning...";
+    statusBox.className        = "status-box status-scanning";
+    statusIcon.innerText       = "🤖";
+    statusMessage.innerText    = "Analyzing URL, SSL & Webpage Content...";
+    confidenceText.innerText   = "Please wait...";
+    if (categoryBadge) categoryBadge.style.display = "none";
+    if (sslBox) sslBox.style.display = "none";
+    featuresBox.style.display  = "none";
+    if (robotBox) robotBox.style.display = "none";
+    scanBtn.disabled           = true;
+    scanBtn.innerText          = "Scanning...";
 
     fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url: urlToScan })
+      body: JSON.stringify({ url: urlToScan, client_type: "extension" })
     })
     .then(function(response) {
       if (!response.ok) throw new Error("Server error: " + response.status);
@@ -50,6 +59,47 @@ document.addEventListener('DOMContentLoaded', function () {
         statusMessage.innerText  = "Website is SAFE";
       }
       confidenceText.innerText = "Confidence: " + data.confidence + "% | " + data.risk_level;
+
+      // Render Threat Category
+      if (categoryBadge && data.threat_category) {
+        categoryBadge.innerText = "🏷️ Category: " + data.threat_category;
+        categoryBadge.style.display = "inline-block";
+      }
+
+      // Render SSL Inspector Card
+      if (sslBox && data.ssl_info) {
+        let ssl = data.ssl_info;
+        document.getElementById("ssl-status").innerText = ssl.valid ? "✅ Valid & Trusted" : (ssl.has_ssl ? "⚠️ Invalid / Handshake Error" : "❌ No HTTPS");
+        document.getElementById("ssl-issuer").innerText = ssl.issuer || "None";
+        document.getElementById("ssl-expiry").innerText = ssl.valid ? (ssl.days_remaining + " days left") : ssl.details;
+        sslBox.style.display = "block";
+      }
+
+      // Render Robot Webpage Inspection
+      if (data.content_analysis && robotBox) {
+        let ca = data.content_analysis;
+        var setEl = function(id, val) {
+          var el = document.getElementById(id);
+          if (el) el.innerText = val;
+        };
+        setEl("robot-pwd",   ca.has_password_field ? "DETECTED (Risk)" : "None");
+        setEl("robot-form",  ca.external_form_action ? "UNAUTHORIZED POST" : "Safe / Internal");
+        setEl("robot-brand", ca.brand_mismatch ? ca.brand_mismatch : "Verified / Clean");
+        setEl("robot-score", ca.content_risk_score + "%");
+
+        if (robotSignals) {
+          robotSignals.innerHTML = "";
+          if (ca.risk_signals && ca.risk_signals.length > 0) {
+            ca.risk_signals.forEach(function(sig) {
+              let tag = document.createElement("span");
+              tag.className = "robot-signal-tag";
+              tag.innerText = "⚠️ " + sig;
+              robotSignals.appendChild(tag);
+            });
+          }
+        }
+        robotBox.style.display = "block";
+      }
 
       if (data.features) {
         var f = data.features;
@@ -91,10 +141,12 @@ document.addEventListener('DOMContentLoaded', function () {
       statusMessage.innerText   = "Server Offline";
       confidenceText.innerText  = "Run: uvicorn backend.main:app --reload";
       featuresBox.style.display = "none";
+      if (robotBox) robotBox.style.display = "none";
+      if (sslBox) sslBox.style.display = "none";
     })
     .then(function() {
       scanBtn.disabled  = false;
-      scanBtn.innerText = "Scan URL";
+      scanBtn.innerText = "Scan URL & Webpage";
     });
   });
 });

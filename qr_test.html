@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CyberShield QR Code Test Page</title>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #0f0c29; color: #fff; text-align: center; padding: 40px; }
+        h1 { color: #00d4ff; }
+        .qr-container { display: flex; justify-content: center; gap: 50px; margin-top: 30px; }
+        .card { background: rgba(255,255,255,0.08); border-radius: 16px; padding: 25px; width: 300px; border: 1px solid rgba(255,255,255,0.1); }
+        .safe { border-color: #00e676; }
+        .danger { border-color: #ff1744; }
+        img { width: 220px; height: 220px; border-radius: 10px; background: white; padding: 10px; }
+        .badge { padding: 6px 12px; border-radius: 20px; font-size: 14px; font-weight: bold; display: inline-block; margin-bottom: 15px; }
+        .badge-safe { background: #00e676; color: #000; }
+        .badge-danger { background: #ff1744; color: #fff; }
+        p { word-break: break-all; font-family: monospace; font-size: 13px; color: #8892b0; }
+    </style>
+</head>
+<body>
+    <h1>🛡️ CyberShield QR Code Testing Page</h1>
+    <p>Point your mobile phone camera at these QR codes to scan with CyberShield App!</p>
+
+    <div class="qr-container">
+        <div class="card safe">
+            <div class="badge badge-safe">🟢 SAFE WEBSITE</div>
+            <br>
+            <img src="safe_qr.png" alt="Safe QR">
+            <p><strong>URL:</strong> https://google.com</p>
+        </div>
+
+        <div class="card danger">
+            <div class="badge badge-danger">🔴 PHISHING DANGER</div>
+            <br>
+            <img src="phishing_qr.png" alt="Phishing QR">
+            <p><strong>URL:</strong> http://paypal-security-login.xyz/signin.html</p>
+        </div>
+    </div>
+</body>
+</html>

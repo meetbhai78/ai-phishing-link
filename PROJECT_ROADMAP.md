@@ -50,27 +50,39 @@ The project is a multi-platform security solution composed of:
   - [x] Expose an endpoint (e.g., `/predict`) receiving JSON URLs.
   - [x] Connect the Browser Extension (`popup.js`) to call this API via `fetch()`.
 
-### 🚧 Phase 3 (Pending)
+### ✅ Phase 3 (Completed)
 - **Week 5: Content Detection & Android App Setup**
-  - [ ] Implement Content-Based Detection (Web Scraping bot for page titles, login forms) in FastAPI.
-  - [ ] Initialize Flutter project.
-  - [ ] Create UI for URL scanning and QR code scanning.
-  - [ ] Connect mobile app to the FastAPI backend.
+  - [x] Implement Content-Based Detection (Web Scraping bot for page titles, password forms, brand mismatches) in FastAPI.
+  - [x] Initialize Flutter project inside `mobile_app`.
+  - [x] Create UI for URL scanning and QR code scanning.
+  - [x] Connect mobile app to the FastAPI backend (`api_service.dart`).
 
+
+
+### ✅ Phase 4 (Completed)
 - **Week 6: Database & Dashboard**
-  - [ ] Setup MongoDB Atlas.
-  - [ ] Modify FastAPI to log all scans (URL, result, confidence, date).
-  - [ ] Build a Threat Dashboard interface to display statistics.
+  - [x] Setup MongoDB Atlas connection with local dual-mode fallback.
+  - [x] Modify FastAPI to log all scans (URL, result, confidence, date, client type).
+  - [x] Build CyberShield Threat Intelligence Dashboard interface with real-time analytics & charts.
 
-### 🚧 Phase 4 (Pending)
 - **Week 7: Integration & Refinement**
-  - [ ] End-to-end integration testing (Extension + App + API + DB).
-  - [ ] Bug fixing and UI/UX improvements.
+  - [x] End-to-end integration testing (Extension + App + API + DB).
+  - [x] Bug fixing and UI/UX improvements.
+  - [x] Automated test suite created (`backend/test_integration.py`).
+  - [x] Client type tracking integrated (`extension` & `mobile_app`).
 
+### ✅ Phase 5 (Completed)
 - **Week 8: Final Delivery**
-  - [ ] Final project testing.
-  - [ ] Prepare Project Report and Presentation (PPT).
-  - [ ] Final Demo readiness.
+  - [x] Final project testing (11/11 automated tests passed).
+  - [x] Prepared Project Report (`PROJECT_FINAL_REPORT.md`) and Presentation Slides (`PROJECT_PRESENTATION_SLIDES.md`).
+  - [x] Final Demo readiness & Viva Guide created (`FINAL_DEMO_GUIDE.md`).
+
+### ✅ Phase 6 (Completed)
+- **Week 9: Scientific ML Performance Evaluation & Advanced Features**
+  - [x] Added Scientific ML Evaluation Module (`backend/metrics.py`) with Confusion Matrix & ROC-AUC.
+  - [x] Added Enterprise Batch URL Scanner (`/api/batch-scan`).
+  - [x] Added User Threat Feedback & False-Positive Reporting (`/api/feedback` with MongoDB/SQLite logging).
+  - [x] Enhanced Live Threat Dashboard with real-time model evaluation, batch hunting console, and reporting.
 
 ---
 

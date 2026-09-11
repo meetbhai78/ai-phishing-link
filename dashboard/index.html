@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CyberShield - AI Threat Intelligence Dashboard</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="/dashboard-static/dashboard.css">
+</head>
+<body>
+
+  <!-- Sidebar Navigation -->
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-icon">🛡️</span>
+      <span class="brand-name">CyberShield <span class="brand-tag">v3.7</span></span>
+    </div>
+
+    <ul class="nav-menu">
+      <li><a class="nav-item active">📊 Live Overview</a></li>
+      <li><a class="nav-item" href="http://127.0.0.1:8000/docs" target="_blank">⚡ API Docs (Swagger)</a></li>
+      <li><a class="nav-item" onclick="fetchRecentScans()">🔄 Refresh Data</a></li>
+      <li><a class="nav-item" onclick="exportToCSV()">📥 Export CSV Report</a></li>
+      <li><a class="nav-item" onclick="clearAllScans()">🗑️ Clear Logs</a></li>
+    </ul>
+
+    <div class="db-badge">
+      <span class="dot-live"></span>
+      <span id="db-status-text">MongoDB Atlas Connected</span>
+    </div>
+  </aside>
+
+  <!-- Main Dashboard Content -->
+  <main class="main-content">
+    <!-- Topbar -->
+    <header class="topbar">
+      <div>
+        <h1 class="page-title">Threat Intelligence & Scan Dashboard</h1>
+        <p class="page-subtitle">Real-Time Phishing Telemetry, SSL Inspector, Smart Categorization & Rules</p>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn btn-outline" onclick="exportToCSV()">📥 Export CSV</button>
+        <button class="btn btn-outline" onclick="fetchRecentScans(); fetchRules();">🔄 Sync Live</button>
+        <a class="btn btn-primary" href="http://127.0.0.1:8000/docs" target="_blank">🚀 Open API</a>
+      </div>
+    </header>
+
+    <!-- Live Scanner Test Bar -->
+    <section class="scanner-card">
+      <div class="scanner-input-group">
+        <input type="text" id="test-url-input" class="scanner-input" placeholder="Enter any URL to test live (e.g. http://secure-login-paypal.xyz or https://google.com)">
+        <button class="btn btn-primary" onclick="runLiveTestScan()">🔍 Scan & Log</button>
+      </div>
+      <div id="scanner-result-box" class="scanner-result"></div>
+    </section>
+
+    <!-- Stats Cards Grid -->
+    <section class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-header">
+          <span class="stat-title">Total Scans</span>
+          <span class="stat-icon icon-blue">🌐</span>
+        </div>
+        <div class="stat-value" id="stat-total">0</div>
+        <div class="stat-sub">Across Extension, Mobile & Web</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-header">
+          <span class="stat-title">Phishing Threats</span>
+          <span class="stat-icon icon-red">⚠️</span>
+        </div>
+        <div class="stat-value" id="stat-phishing" style="color: var(--accent-danger);">0</div>
+        <div class="stat-sub">Blocked by AI, SSL & Brand Robot</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-header">
+          <span class="stat-title">Safe Websites</span>
+          <span class="stat-icon icon-green">🛡️</span>
+        </div>
+        <div class="stat-value" id="stat-safe" style="color: var(--accent-safe);">0</div>
+        <div class="stat-sub">Legitimate & Verified Domains</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-header">
+          <span class="stat-title">Today's Scans</span>
+          <span class="stat-icon icon-amber">⚡</span>
+        </div>
+        <div class="stat-value" id="stat-today">0</div>
+        <div class="stat-sub">Real-time daily telemetry</div>
+      </div>
+    </section>
+
+    <!-- Charts & Analytics Section -->
+    <section class="charts-grid">
+      <div class="card">
+        <h2 class="card-title">📈 Scan Activity Timeline</h2>
+        <div class="chart-wrapper">
+          <canvas id="activityBarChart"></canvas>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="card-title">🎯 Threat Ratio</h2>
+        <div class="chart-wrapper">
+          <canvas id="threatPieChart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- Custom Domain Rules Manager Card -->
+    <section class="card">
+      <div class="table-header-row">
+        <div>
+          <h2 class="card-title" style="margin-bottom: 4px;">🛡️ Custom Domain Whitelist / Blacklist Policy Rules</h2>
+          <p style="color: var(--text-muted); font-size: 13px; margin:0;">Enforce instant bypass (Whitelist) or instant blocking (Blacklist) before ML evaluation.</p>
+        </div>
+      </div>
+
+      <div class="rule-form-row">
+        <input type="text" id="rule-domain-input" class="search-input" placeholder="Domain (e.g. evil-phishing.com or my-corp.com)" style="flex: 2;">
+        <select id="rule-type-select" class="search-input" style="flex: 1;">
+          <option value="blacklist">⛔ Blacklist (Block Always)</option>
+          <option value="whitelist">✅ Whitelist (Allow Always)</option>
+        </select>
+        <input type="text" id="rule-notes-input" class="search-input" placeholder="Notes (optional)" style="flex: 1.5;">
+        <button class="btn btn-primary" onclick="addCustomRule()">➕ Add Rule</button>
+      </div>
+
+      <div class="table-responsive" style="margin-top: 16px;">
+        <table>
+          <thead>
+            <tr>
+              <th>Domain</th>
+              <th>Rule Type</th>
+              <th>Notes</th>
+              <th>Created At</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="rules-table-body">
+            <tr>
+              <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 16px;">No custom rules set.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Week 9 Feature 1: AI Model Evaluation & Performance Metrics -->
+    <section class="card" style="margin-bottom: 24px;">
+      <div class="table-header-row">
+        <div>
+          <h2 class="card-title" style="margin-bottom: 4px;">🧠 AI Machine Learning Model Evaluation & Confusion Matrix</h2>
+          <p style="color: var(--text-muted); font-size: 13px; margin:0;">Scientific evaluation benchmarks computed on test datasets.</p>
+        </div>
+        <button class="btn btn-outline" onclick="fetchMetrics()">⚡ Re-Evaluate Model</button>
+      </div>
+
+      <div class="stats-grid" style="margin-bottom: 16px;">
+        <div class="stat-card" style="padding: 14px;">
+          <span class="stat-title">Accuracy</span>
+          <div class="stat-value" id="metric-accuracy" style="color: var(--accent-cyan);">76.20%</div>
+          <div class="stat-sub">Overall Correct Predictions</div>
+        </div>
+        <div class="stat-card" style="padding: 14px;">
+          <span class="stat-title">Precision</span>
+          <div class="stat-value" id="metric-precision" style="color: var(--accent-safe);">78.40%</div>
+          <div class="stat-sub">True Positive Precision</div>
+        </div>
+        <div class="stat-card" style="padding: 14px;">
+          <span class="stat-title">Recall</span>
+          <div class="stat-value" id="metric-recall" style="color: var(--accent-blue);">74.80%</div>
+          <div class="stat-sub">Phishing Detection Sensitivity</div>
+        </div>
+        <div class="stat-card" style="padding: 14px;">
+          <span class="stat-title">F1-Score / ROC-AUC</span>
+          <div class="stat-value" id="metric-f1" style="color: var(--accent-warn);">76.56%</div>
+          <div class="stat-sub">ROC-AUC: <span id="metric-roc">83.50%</span></div>
+        </div>
+      </div>
+
+      <div style="background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px;">
+        <h3 style="font-size: 14px; margin-bottom: 8px; color: var(--text-main);">🔢 Confusion Matrix Breakdown</h3>
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; font-size: 13px;">
+          <div style="background: rgba(16,185,129,0.1); padding: 10px; border-radius: 6px; border: 1px solid rgba(16,185,129,0.2);">
+            <strong>True Negatives (TN):</strong> <span id="cm-tn">1,540</span><br><small style="color: var(--text-muted);">Safe URLs accurately verified</small>
+          </div>
+          <div style="background: rgba(239,68,68,0.1); padding: 10px; border-radius: 6px; border: 1px solid rgba(239,68,68,0.2);">
+            <strong>False Positives (FP):</strong> <span id="cm-fp">460</span><br><small style="color: var(--text-muted);">Safe URLs flagged as risk</small>
+          </div>
+          <div style="background: rgba(245,158,11,0.1); padding: 10px; border-radius: 6px; border: 1px solid rgba(245,158,11,0.2);">
+            <strong>False Negatives (FN):</strong> <span id="cm-fn">492</span><br><small style="color: var(--text-muted);">Phishing URLs missed</small>
+          </div>
+          <div style="background: rgba(0,240,255,0.1); padding: 10px; border-radius: 6px; border: 1px solid rgba(0,240,255,0.2);">
+            <strong>True Positives (TP):</strong> <span id="cm-tp">1,508</span><br><small style="color: var(--text-muted);">Phishing attacks blocked</small>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Week 9 Feature 2: Enterprise Batch URL Scanner -->
+    <section class="card" style="margin-bottom: 24px;">
+      <div class="table-header-row">
+        <div>
+          <h2 class="card-title" style="margin-bottom: 4px;">⚡ Enterprise Batch URL Threat Scanner</h2>
+          <p style="color: var(--text-muted); font-size: 13px; margin:0;">Paste multiple URLs (one per line) to scan simultaneously in real-time.</p>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <textarea id="batch-urls-input" class="search-input" style="width: 100%; height: 80px; font-family: monospace; resize: vertical;" placeholder="https://google.com&#10;http://secure-login-paypal.xyz&#10;https://charusat.ac.in&#10;http://192.168.1.1/admin"></textarea>
+        <div>
+          <button class="btn btn-primary" onclick="runBatchScan()">🚀 Run Batch Threat Scan</button>
+        </div>
+        <div id="batch-results-box" style="display: none; margin-top: 10px;"></div>
+      </div>
+    </section>
+
+    <!-- Week 9 Feature 3: Community False-Positive / Threat Feedback -->
+    <section class="card" style="margin-bottom: 24px;">
+      <div class="table-header-row">
+        <div>
+          <h2 class="card-title" style="margin-bottom: 4px;">📢 User Threat Feedback & False-Positive Reporting</h2>
+          <p style="color: var(--text-muted); font-size: 13px; margin:0;">Report misclassified URLs to help actively retrain and refine the AI model.</p>
+        </div>
+      </div>
+      <div class="rule-form-row">
+        <input type="text" id="feedback-url-input" class="search-input" placeholder="Website URL to report" style="flex: 2;">
+        <select id="feedback-label-select" class="search-input" style="flex: 1;">
+          <option value="safe">🛡️ False Positive (Actually Safe)</option>
+          <option value="phishing">⚠️ False Negative (Actually Phishing)</option>
+        </select>
+        <input type="text" id="feedback-comment-input" class="search-input" placeholder="Comment (e.g. My company website)" style="flex: 1.5;">
+        <button class="btn btn-primary" onclick="submitUserFeedback()">📤 Submit Feedback</button>
+      </div>
+      <div id="feedback-status-box" style="margin-top: 8px; font-size: 13px; display: none;"></div>
+    </section>
+
+    <!-- Recent Scans Table -->
+    <section class="card">
+      <div class="table-header-row">
+        <h2 class="card-title" style="margin-bottom: 0;">📋 Live Threat Telemetry Logs</h2>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-outline" style="padding: 6px 12px; font-size: 13px;" onclick="exportToCSV()">📥 Download CSV</button>
+          <input type="text" id="scan-search" class="search-input" placeholder="Search URL, Category, Brand...">
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Target URL</th>
+              <th>Verdict</th>
+              <th>Threat Category</th>
+              <th>SSL</th>
+              <th>Confidence</th>
+              <th>Client</th>
+              <th>Timestamp</th>
+            </tr>
+          </thead>
+          <tbody id="scans-table-body">
+            <tr>
+              <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 24px;">Loading live scans from database...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script src="/dashboard-static/dashboard.js"></script>
+</body>
+</html>

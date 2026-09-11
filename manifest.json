@@ -1,19 +1,33 @@
 {
   "manifest_version": 3,
-  "name": "CyberShield: Phishing Detection",
-  "version": "2.0",
-  "description": "AI-Based Real-Time Phishing Detection Browser Extension",
+  "name": "CyberShield: Phishing Detection & Auto-Shield",
+  "version": "3.0",
+  "description": "AI-Based Real-Time Phishing Detection & Active Tab Auto-Shield",
   "permissions": [
     "activeTab",
-    "tabs"
+    "tabs",
+    "notifications",
+    "storage"
   ],
   "host_permissions": [
     "http://127.0.0.1/*",
-    "http://localhost/*"
+    "http://localhost/*",
+    "http://*/*",
+    "https://*/*"
   ],
   "action": {
     "default_popup": "popup/popup.html",
-    "default_title": "CyberShield"
+    "default_title": "CyberShield Auto-Shield",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
   },
   "background": {
     "service_worker": "background/background.js"

@@ -4,3 +4,8 @@ scikit-learn
 pandas
 joblib
 pydantic
+requests
+beautifulsoup4
+pymongo
+motor
+python-dotenv
