@@ -38,5 +38,6 @@ mobile_app/ios/.symlinks/
 *.bak
 test_crop_*
 test_thumb_*
+built_apk/
 thumb_*
 slides_preview/

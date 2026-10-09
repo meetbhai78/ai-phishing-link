@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
+import '../services/notification_service.dart';
 import '../widgets/api_settings_dialog.dart';
 
 class MessageShieldScreen extends StatefulWidget {
@@ -19,6 +20,7 @@ class _MessageShieldScreenState extends State<MessageShieldScreen>
   // Auto-Protection Toggles
   bool _whatsappGuardEnabled = true;
   bool _smsGuardEnabled = true;
+  bool _hasNativeNotificationAccess = false;
 
   // Manual Analyzer Controllers
   final TextEditingController _senderController = TextEditingController();
@@ -93,6 +95,138 @@ class _MessageShieldScreenState extends State<MessageShieldScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    NotificationService.initialize(
+      onNotification: _handleIncomingNativeNotification,
+      onSharedText: _handleIncomingSharedText,
+    );
+    _checkNativeNotificationAccess();
+  }
+
+  Future<void> _checkNativeNotificationAccess() async {
+    final granted = await NotificationService.isNotificationAccessGranted();
+    if (mounted) {
+      setState(() {
+        _hasNativeNotificationAccess = granted;
+      });
+    }
+  }
+
+  void _handleIncomingNativeNotification(InterceptedNotification item) {
+    if (!mounted) return;
+    if (item.source == 'whatsapp' && !_whatsappGuardEnabled) return;
+    if (item.source == 'sms' && !_smsGuardEnabled) return;
+
+    _triggerSimulatedNotification({
+      "title": "Intercepted: ${item.sender}",
+      "source": item.source,
+      "sender": item.sender,
+      "text": item.text,
+      "type": "live",
+    });
+  }
+
+  void _handleIncomingSharedText(String text) {
+    if (!mounted) return;
+    _messageController.text = text;
+    _tabController.animateTo(1);
+    _performAnalysis(messageToScan: text, sourceToUse: 'whatsapp');
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("📥 Message received from WhatsApp & analyzed!"),
+        backgroundColor: Colors.teal,
+      ),
+    );
+  }
+
+  Future<void> _scanFromClipboard() async {
+    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    if (!mounted) return;
+    final text = data?.text?.trim() ?? '';
+    if (text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Clipboard is empty. Copy a WhatsApp link or message first.")),
+      );
+      return;
+    }
+    _messageController.text = text;
+    _tabController.animateTo(1);
+    _performAnalysis(messageToScan: text, sourceToUse: 'whatsapp');
+  }
+
+  void _showEnableNotificationAccessDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E2E),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.notifications_active, color: Colors.greenAccent),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                "Enable Notification Access",
+                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "To automatically scan incoming WhatsApp and SMS preview alerts on this tablet, Android requires permission to read notifications.",
+              style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white.withAlpha(10),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.white12),
+              ),
+              child: const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "📱 Required Step:",
+                    style: TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold, fontSize: 12),
+                  ),
+                  SizedBox(height: 6),
+                  Text(
+                    "1. Tap 'Open Android Settings' below.\n2. Find 'CyberShield AI' in the list.\n3. Turn the switch ON (Allow Notification Access).\n4. Return to CyberShield — incoming WhatsApp alerts will be caught instantly!",
+                    style: TextStyle(color: Colors.white60, fontSize: 11, height: 1.4),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Later", style: TextStyle(color: Colors.white54)),
+          ),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.greenAccent,
+              foregroundColor: Colors.black,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () async {
+              Navigator.pop(context);
+              await NotificationService.openNotificationSettings();
+              await Future.delayed(const Duration(seconds: 1));
+              _checkNativeNotificationAccess();
+            },
+            icon: const Icon(Icons.settings, size: 16),
+            label: const Text("Open Android Settings", style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -476,6 +610,50 @@ class _MessageShieldScreenState extends State<MessageShieldScreen>
           ),
           const SizedBox(height: 16),
 
+          if (!_hasNativeNotificationAccess)
+            Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.amber.withAlpha(25),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.amberAccent.withAlpha(120)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.notifications_paused, color: Colors.amberAccent, size: 24),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Android Notification Access Required",
+                          style: TextStyle(color: Colors.amberAccent, fontWeight: FontWeight.bold, fontSize: 12),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          "Allow CyberShield in Android settings to auto-read incoming WhatsApp preview alerts.",
+                          style: TextStyle(color: Colors.white70, fontSize: 11),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton(
+                    onPressed: _showEnableNotificationAccessDialog,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.amberAccent,
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    child: const Text("ALLOW", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                  ),
+                ],
+              ),
+            ),
+
           // Protection Toggles
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -488,7 +666,10 @@ class _MessageShieldScreenState extends State<MessageShieldScreen>
               children: [
                 SwitchListTile(
                   value: _whatsappGuardEnabled,
-                  onChanged: (val) {
+                  onChanged: (val) async {
+                    if (val && !_hasNativeNotificationAccess) {
+                      _showEnableNotificationAccessDialog();
+                    }
                     setState(() => _whatsappGuardEnabled = val);
                   },
                   activeThumbColor: Colors.greenAccent,
@@ -502,9 +683,14 @@ class _MessageShieldScreenState extends State<MessageShieldScreen>
                     "WhatsApp Notification Guard",
                     style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
                   ),
-                  subtitle: const Text(
-                    "Auto-extracts and scans links in WhatsApp preview alerts",
-                    style: TextStyle(color: Colors.white54, fontSize: 11),
+                  subtitle: Text(
+                    _hasNativeNotificationAccess
+                        ? "Active: Intercepting live WhatsApp notifications"
+                        : "Requires Android Notification Access",
+                    style: TextStyle(
+                      color: _hasNativeNotificationAccess ? Colors.greenAccent : Colors.amberAccent,
+                      fontSize: 11,
+                    ),
                   ),
                 ),
                 Divider(color: Colors.white.withAlpha(15), height: 1),
@@ -528,6 +714,56 @@ class _MessageShieldScreenState extends State<MessageShieldScreen>
                     "Validates TRAI DLT sender headers and scans SMS links",
                     style: TextStyle(color: Colors.white54, fontSize: 11),
                   ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Instant Clipboard Scan Quick-Action
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white.withAlpha(8),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Colors.white12),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.cyan.withAlpha(30),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.content_paste, color: Colors.cyanAccent, size: 20),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Clipboard Quick-Scan",
+                        style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        "Copied a link or message in WhatsApp? Tap to analyze instantly.",
+                        style: TextStyle(color: Colors.white54, fontSize: 10),
+                      ),
+                    ],
+                  ),
+                ),
+                ElevatedButton.icon(
+                  onPressed: _scanFromClipboard,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.cyanAccent,
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  icon: const Icon(Icons.search, size: 14),
+                  label: const Text("Paste & Scan", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
                 ),
               ],
             ),
