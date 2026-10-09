@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
+import '../widgets/api_settings_dialog.dart';
 
 class MessageShieldScreen extends StatefulWidget {
   const MessageShieldScreen({super.key});
@@ -346,6 +347,11 @@ class _MessageShieldScreenState extends State<MessageShieldScreen>
           ],
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.tune, color: Colors.white70),
+            tooltip: "API & MongoDB Settings",
+            onPressed: () => ApiSettingsDialog.show(context),
+          ),
           IconButton(
             icon: const Icon(Icons.info_outline, color: Colors.cyanAccent),
             tooltip: "How Auto-Scanning Works",

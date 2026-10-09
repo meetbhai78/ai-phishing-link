@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import '../services/api_service.dart';
+import '../widgets/api_settings_dialog.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -14,6 +15,11 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = false;
   PredictionResult? _result;
   String? _errorMessage;
+
+  // Active Connection State
+  bool _isCheckingConnection = false;
+  bool _isServerOnline = false;
+  String _databaseStatus = "Checking...";
 
   // Recent scans local history cache
   final List<PredictionResult> _recentScans = [];
@@ -48,9 +54,31 @@ class _HomeScreenState extends State<HomeScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _checkServerConnection();
+  }
+
+  @override
   void dispose() {
     _urlController.dispose();
     super.dispose();
+  }
+
+  Future<void> _checkServerConnection() async {
+    setState(() {
+      _isCheckingConnection = true;
+    });
+
+    final status = await ApiService.testConnection();
+
+    if (mounted) {
+      setState(() {
+        _isCheckingConnection = false;
+        _isServerOnline = status['success'] == true;
+        _databaseStatus = status['message'] ?? (_isServerOnline ? "MongoDB Atlas Online" : "Offline Engine");
+      });
+    }
   }
 
   Future<void> _performScan([String? urlToScan]) async {
@@ -94,64 +122,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showApiSettingsDialog() {
-    final controller = TextEditingController(text: ApiService.baseUrl);
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1E2E),
-        title: const Row(
-          children: [
-            Icon(Icons.tune, color: Colors.cyanAccent),
-            SizedBox(width: 8),
-            Text("API Gateway Settings", style: TextStyle(color: Colors.cyanAccent, fontSize: 16)),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              "Current FastAPI Target:\n- Chrome / Web: http://127.0.0.1:8000/predict\n- Real Phone: http://<PC_IP>:8000/predict",
-              style: TextStyle(color: Colors.white70, fontSize: 12),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: controller,
-              style: const TextStyle(color: Colors.white, fontFamily: 'monospace', fontSize: 13),
-              decoration: InputDecoration(
-                border: const OutlineInputBorder(),
-                labelText: "Predict Endpoint",
-                labelStyle: const TextStyle(color: Colors.cyanAccent),
-                focusedBorder: const OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.cyanAccent),
-                ),
-                filled: true,
-                fillColor: Colors.black.withAlpha(80),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel", style: TextStyle(color: Colors.white54)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.cyanAccent),
-            onPressed: () {
-              setState(() {
-                ApiService.baseUrl = controller.text.trim();
-              });
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text("API Endpoint updated: ${ApiService.baseUrl}")),
-              );
-            },
-            child: const Text("Save & Apply", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
-    );
+    ApiSettingsDialog.show(context, onSettingsSaved: _checkServerConnection);
   }
 
   @override
@@ -189,28 +160,52 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         actions: [
-          // Live Status Pill
-          Container(
-            margin: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.green.withAlpha(30),
+          // Live Status Pill (Tappable to test/reconfigure)
+          Tooltip(
+            message: _databaseStatus,
+            child: InkWell(
+              onTap: _showApiSettingsDialog,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.greenAccent.withAlpha(80)),
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.circle, color: Colors.greenAccent, size: 8),
-                SizedBox(width: 5),
-                Text("API Online", style: TextStyle(color: Colors.greenAccent, fontSize: 11, fontWeight: FontWeight.bold)),
-              ],
+              child: Container(
+                margin: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _isServerOnline ? Colors.green.withAlpha(30) : Colors.amber.withAlpha(30),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: _isServerOnline ? Colors.greenAccent.withAlpha(80) : Colors.amberAccent.withAlpha(80),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      _isCheckingConnection
+                          ? Icons.sync
+                          : (_isServerOnline ? Icons.circle : Icons.offline_bolt),
+                      color: _isServerOnline ? Colors.greenAccent : Colors.amberAccent,
+                      size: 10,
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      _isCheckingConnection
+                          ? "Testing..."
+                          : (_isServerOnline ? "Atlas Online" : "Offline Mode"),
+                      style: TextStyle(
+                        color: _isServerOnline ? Colors.greenAccent : Colors.amberAccent,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
           IconButton(
             icon: const Icon(Icons.tune, color: Colors.white70),
             onPressed: _showApiSettingsDialog,
-            tooltip: "API Settings",
+            tooltip: "API & MongoDB Settings",
           ),
         ],
       ),
