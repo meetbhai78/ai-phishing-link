@@ -84,7 +84,42 @@ The project is a multi-platform security solution composed of:
   - [x] Added User Threat Feedback & False-Positive Reporting (`/api/feedback` with MongoDB/SQLite logging).
   - [x] Enhanced Live Threat Dashboard with real-time model evaluation, batch hunting console, and reporting.
 
+### ✅ Phase 7 (Completed)
+- **Week 10: v4.0 Community Features + Final Integration & Review-2 Preparation**
+  - [x] Added Community Phishing Report system with 5 AI training questions (skippable).
+  - [x] Added Threat Intelligence Feed screen in Flutter app.
+  - [x] Added Report Phishing screen with interactive question cards.
+  - [x] Upgraded to 4-tab navigation (Scanner, QR, Report, Threat Feed).
+  - [x] Added Scan History in browser extension (chrome.storage.local).
+  - [x] Premium glassmorphism UI upgrade for extension (v4.0).
+  - [x] Expanded integration test suite from 11 → 22 tests (complete regression).
+  - [x] ML Model validation with 5-fold cross-validation, feature importance analysis.
+  - [x] Created ML_VALIDATION_REPORT.md with scientific analysis.
+  - [x] Created REVIEW2_VIVA_GUIDE.md (32+ Q&A for viva preparation).
+  - [x] Created WEEK10_EVIDENCE_GUIDE.md (20 screenshots checklist).
+  - [x] Created professional README.md for project.
+  - [x] Project structure cleanup and .gitignore update.
+
+### 📋 Phase 8 (In Progress)
+- **Week 11: Review-2 Deliverables Preparation (21/09/2026 – 27/09/2026)**
+  - [ ] Compile Review-2 Presentation Master PPT (16 slides flow).
+  - [ ] Compile Review-2 Technical Report draft with architecture & UML diagrams.
+  - [ ] Structure 5-minute Live Demo script for 5-member team.
+  - [ ] Weekly report logbook entry for mentor review.
+
+### 🔒 Phase 9 (Upcoming)
+- **Week 12: Final Project Freeze & Review-2 Rehearsal (28/09/2026 – 04/10/2026)**
+  - [ ] **28 Sep:** Final Project Freeze 🔒 (Zero new features, 22/22 regression verified).
+  - [ ] **29 Sep:** Final Report Editing & Proofreading.
+  - [ ] **30 Sep:** Evidence/ Folder 16-screenshot collection and formatting.
+  - [ ] **01 Oct:** Final PPT polish and slide timing rehearsal.
+  - [ ] **02 Oct:** Viva Q&A practice (32 questions revision).
+  - [ ] **03 Oct:** Complete End-to-End Live Demo Rehearsal (Backend -> Ext -> Mobile -> QR -> DB).
+  - [ ] **04 Oct:** Final project backup, clean zip, and Git tag release.
+  - [ ] **05–11 Oct:** 🎯 **CHARUSAT Review-2 Presentation Day!**
+
 ---
 
 **Instructions for any AI reading this:**
 When assisting the user, first check the **Progress Tracker** above to understand the current state. Always follow the **Constraints & Guidelines** strictly. Do not rush to future weeks; execute the plan step-by-step as requested by the user.
+

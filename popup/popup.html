@@ -2,14 +2,15 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>CyberShield</title>
+  <title>CyberShield v4.0</title>
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
   <div class="container">
     <div class="header">
       <h2>&#128737; CyberShield</h2>
-      <p class="subtitle">Real-Time Hybrid AI & Auto-Shield</p>
+      <p class="subtitle">AI-Powered Hybrid Phishing Detection</p>
+      <span class="version-badge">v4.0 NEXT-GEN</span>
     </div>
 
     <div class="url-box">
@@ -21,19 +22,20 @@
       <div class="status-icon" id="status-icon">&#128270;</div>
       <p id="status-message">Ready to scan</p>
       <p class="confidence-text" id="confidence-text"></p>
-      <div id="category-badge" style="display:none; margin-top:8px; font-weight:600; padding:4px 8px; border-radius:4px; font-size:12px; background:rgba(0,0,0,0.2);"></div>
+      <div id="category-badge" style="display:none; margin-top:6px; font-weight:600; padding:3px 8px; border-radius:6px; font-size:11px; background:rgba(124,58,237,0.15); color:#c4b5fd; border:1px solid rgba(124,58,237,0.2);"></div>
     </div>
 
     <!-- SSL Inspector Box -->
     <div class="robot-box" id="ssl-box" style="display: none; border-left: 3px solid #38bdf8;">
       <strong>🔒 SSL Security Certificate:</strong>
-      <div class="robot-card" style="font-size:12px;">
+      <div class="robot-card" style="font-size:11px;">
         <p><strong>Status:</strong> <span id="ssl-status">-</span></p>
         <p><strong>Issuer:</strong> <span id="ssl-issuer">-</span></p>
         <p><strong>Expiry:</strong> <span id="ssl-expiry">-</span></p>
       </div>
     </div>
 
+    <!-- Robot Webpage Inspection -->
     <div class="robot-box" id="robot-box" style="display: none;">
       <strong>&#129302; Robot Webpage Inspection:</strong>
       <div class="robot-card">
@@ -45,6 +47,7 @@
       </div>
     </div>
 
+    <!-- 30-Feature Analysis Table -->
     <div class="features-box" id="features-box" style="display: none;">
       <strong>&#128202; URL Analysis (30 Features):</strong>
       <table id="features-table">
@@ -76,8 +79,39 @@
     </div>
 
     <button id="scan-btn">&#128270; Scan URL & Webpage</button>
-    <p class="footer-text">CyberShield v3.7 | Real-Time Auto-Shield & Threat Intelligence</p>
 
+    <!-- Report Suspicious Link Section (v4.0) -->
+    <div class="report-section">
+      <button id="report-toggle-btn">🚨 Report Suspicious Link</button>
+      <div class="report-form" id="report-form">
+        <label>Paste suspicious URL:</label>
+        <input type="text" class="report-url-input" id="report-url-input" placeholder="https://suspicious-link.com..." />
+
+        <label>What do you think about this link?</label>
+        <div class="label-selector" id="label-selector">
+          <div class="label-chip" data-label="phishing">🚫 Phishing</div>
+          <div class="label-chip" data-label="safe">✅ Safe</div>
+          <div class="label-chip" data-label="unsure">🤔 Unsure</div>
+        </div>
+
+        <div class="questions-container" id="questions-container">
+          <!-- Questions loaded dynamically from API -->
+        </div>
+
+        <button id="submit-report-btn" disabled>📤 Submit Report</button>
+        <div class="report-status" id="report-status"></div>
+      </div>
+    </div>
+
+    <!-- Scan History Section (v4.0) -->
+    <div class="history-section" id="history-section">
+      <div class="history-title">📋 Recent Scans</div>
+      <div id="history-list">
+        <div class="history-empty">No scans yet. Scan a URL to start.</div>
+      </div>
+    </div>
+
+    <p class="footer-text">CyberShield v4.0 | AI + Community Intelligence Engine</p>
   </div>
   <script src="popup.js"></script>
 </body>

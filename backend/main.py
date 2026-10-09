@@ -34,8 +34,8 @@ except ImportError:
 
 app = FastAPI(
     title="CyberShield Prediction API & Threat Intelligence",
-    description="AI-Based Real-Time Phishing Detection API with MongoDB Atlas Logging & SSL Inspector",
-    version="3.7.0"
+    description="AI-Based Real-Time Phishing Detection API with Community Reports & MongoDB Atlas Logging",
+    version="4.0.0"
 )
 
 app.add_middleware(
@@ -254,6 +254,27 @@ class PredictionResponse(BaseModel):
     ssl_info: Dict[str, Any] = {}
     content_analysis: dict = {}
 
+class MessageAnalysisRequest(BaseModel):
+    message: str
+    source: Optional[str] = "whatsapp"  # "whatsapp" or "sms"
+    sender: Optional[str] = ""
+
+class MessageAnalysisResponse(BaseModel):
+    source: str
+    sender: str
+    sender_analysis: Dict[str, Any]
+    extracted_urls: list[str]
+    url_scan_results: list[Dict[str, Any]]
+    urgency_flags: list[str]
+    financial_flags: list[str]
+    scam_category: str
+    trust_score: float
+    verdict: str
+    trust_reasons: list[str]
+    risk_reasons: list[str]
+    recommended_action: str
+    summary_advisory: str
+
 # ==========================================
 # Endpoints
 # ==========================================
@@ -262,12 +283,13 @@ def root():
     return {
         "status": "online",
         "service": "CyberShield Prediction API",
-        "version": "3.7.0",
+        "version": "4.0.0",
         "model_loaded": model is not None,
         "features_count": 30,
         "content_robot_active": True,
         "ssl_inspector_active": True,
         "custom_rules_active": True,
+        "community_reports_active": True,
         "database_mode": "MongoDB Atlas / SQLite Dual Logging",
         "dashboard_url": "http://127.0.0.1:8000/dashboard"
     }
@@ -360,6 +382,104 @@ def batch_scan_urls_api(req: BatchScanRequest):
             except Exception as e:
                 results.append({"url": u, "error": str(e)})
     return {"total_scanned": len(results), "results": results}
+
+# ==========================================
+# v4.0 — Community Phishing Reports & AI Training Questions
+# ==========================================
+COMMUNITY_QUESTIONS = [
+    {
+        "id": "q1_source",
+        "question": "Where did you receive this link?",
+        "options": ["WhatsApp", "SMS", "Email", "Social Media", "Website", "Other"],
+        "type": "single_choice"
+    },
+    {
+        "id": "q2_personal_info",
+        "question": "Did this link ask for personal information (password, OTP, card details)?",
+        "options": ["Yes", "No", "Not Sure"],
+        "type": "single_choice"
+    },
+    {
+        "id": "q3_brand_impersonation",
+        "question": "Does this link look like a known brand (bank, Amazon, Google, etc.)?",
+        "options": ["Yes", "No", "Not Sure"],
+        "type": "single_choice"
+    },
+    {
+        "id": "q4_entered_info",
+        "question": "Did you enter any information on this website?",
+        "options": ["Yes", "No"],
+        "type": "single_choice"
+    },
+    {
+        "id": "q5_suspicion_level",
+        "question": "How suspicious does this link look to you? (1 = Not at all, 5 = Very suspicious)",
+        "options": ["1", "2", "3", "4", "5"],
+        "type": "rating"
+    }
+]
+
+class CommunityReportRequest(BaseModel):
+    url: str
+    user_reported_label: str  # 'phishing', 'safe', or 'unsure'
+    questions_answers: Optional[Dict[str, str]] = {}
+    source: Optional[str] = "app"  # 'app' or 'extension'
+
+@app.get("/api/community-questions")
+def get_community_questions():
+    """Returns the list of AI training questions for community reports."""
+    return {"questions": COMMUNITY_QUESTIONS}
+
+@app.post("/api/community-report")
+def submit_community_report(req: CommunityReportRequest):
+    """Submits a community phishing report with optional AI training answers."""
+    if not req.url.strip():
+        raise HTTPException(status_code=400, detail="URL cannot be empty.")
+
+    # Auto-scan the URL first
+    auto_scan = {}
+    try:
+        scan_result = predict_url(URLRequest(url=req.url.strip(), client_type="community_report"))
+        auto_scan = {
+            "auto_scan_phishing": scan_result.is_phishing,
+            "auto_scan_confidence": scan_result.confidence,
+            "auto_scan_risk_level": scan_result.risk_level,
+            "auto_scan_threat_category": scan_result.threat_category
+        }
+    except Exception as e:
+        auto_scan = {
+            "auto_scan_phishing": False,
+            "auto_scan_confidence": 0.0,
+            "auto_scan_risk_level": "SCAN_FAILED",
+            "auto_scan_threat_category": "Unknown"
+        }
+
+    report_data = {
+        "url": req.url.strip(),
+        "user_reported_label": req.user_reported_label,
+        "questions_answers": req.questions_answers or {},
+        "source": req.source or "app",
+        **auto_scan
+    }
+
+    record = db.add_community_report(report_data)
+    return {
+        "success": True,
+        "report": record,
+        "auto_scan": auto_scan,
+        "message": "Thank you! Your report has been submitted for AI model improvement."
+    }
+
+@app.get("/api/community-reports")
+def get_community_reports_api(limit: int = 50):
+    """Retrieves recent community phishing reports."""
+    return db.get_community_reports(limit=limit)
+
+@app.get("/api/community-stats")
+def get_community_stats_api():
+    """Returns community contribution statistics."""
+    return db.get_community_stats()
+
 
 
 # ==========================================
@@ -542,3 +662,227 @@ def predict_url(request: URLRequest):
     })
 
     return resp
+
+
+# ==========================================
+# WhatsApp & SMS Message / Notification Security Analyzer
+# ==========================================
+@app.post("/api/analyze-message", response_model=MessageAnalysisResponse)
+def analyze_message_endpoint(req: MessageAnalysisRequest):
+    """
+    Analyzes WhatsApp messages and SMS texts:
+    1. Extracts all embedded URLs and short links
+    2. Verifies Sender Authenticity (DLT Corporate Header vs Personal Mobile number)
+    3. Detects Social Engineering & Coercive Urgency keywords
+    4. Automatically scans all links with the CyberShield Hybrid ML + SSL Engine
+    5. Calculates an objective User Trust Score (0-100%) and Trust Transparency breakdown
+    """
+    raw_message = (req.message or "").strip()
+    source = (req.source or "whatsapp").lower()
+    sender = (req.sender or "").strip()
+
+    if not raw_message:
+        raise HTTPException(status_code=400, detail="Message text cannot be empty.")
+
+    # 1. URL Extraction (Standard URLs, IP hosts, and common shortener domains)
+    url_pattern = re.compile(
+        r'(?:https?://[^\s<>"\'()]+|'
+        r'www\.[^\s<>"\'()]+\.[^\s<>"\'()]+|'
+        r'\b[a-zA-Z0-9-]+\.(?:xyz|top|club|info|biz|site|online|live|store|work|link|cc|tk|ga|cf|gq|ml)/[^\s<>"\'()]*|'
+        r'\b(?:bit\.ly|tinyurl\.com|t\.co|is\.gd|cutt\.ly|rb\.gy|shorturl\.at)/[^\s<>"\'()]+)',
+        re.IGNORECASE
+    )
+    raw_extracted = url_pattern.findall(raw_message)
+
+    # Clean and normalize URLs
+    extracted_urls = []
+    for u in raw_extracted:
+        u_clean = u.rstrip('.,;!?:')
+        if not u_clean.startswith("http://") and not u_clean.startswith("https://"):
+            u_clean = "http://" + u_clean
+        if u_clean not in extracted_urls:
+            extracted_urls.append(u_clean)
+
+    # 2. Sender Analysis (TRAI DLT headers vs Personal 10-digit mobile)
+    sender_analysis = {
+        "sender": sender,
+        "source": source,
+        "is_official_header": False,
+        "is_personal_number": False,
+        "notes": ""
+    }
+
+    is_sms = (source == "sms")
+    has_dlt_header = False
+    is_personal_mobile = False
+
+    if sender:
+        cleaned_sender = re.sub(r'[\s\-+]', '', sender)
+        # Indian DLT Header pattern (e.g., AD-SBIINB, VM-HDFCBK, AX-ICICIB, or 6 alpha chars)
+        if is_sms and re.match(r'^[A-Za-z]{2}-?[A-Za-z]{6}$', sender) or (len(cleaned_sender) == 6 and cleaned_sender.isalpha()):
+            has_dlt_header = True
+            sender_analysis["is_official_header"] = True
+            sender_analysis["notes"] = f"Official Enterprise DLT Sender Header verified ({sender})."
+        elif re.match(r'^(91)?[6-9]\d{9}$', cleaned_sender) or re.match(r'^\d{10}$', cleaned_sender):
+            is_personal_mobile = True
+            sender_analysis["is_personal_number"] = True
+            sender_analysis["notes"] = f"Personal 10-digit mobile number ({sender}). Banks never send official links from personal numbers."
+        elif source == "whatsapp":
+            if cleaned_sender.startswith(("92", "84", "234", "62", "254", "1809")):
+                sender_analysis["notes"] = f"Foreign international country code ({sender}). Exercise heightened vigilance."
+            else:
+                sender_analysis["notes"] = f"WhatsApp sender: {sender}."
+
+    # 3. Urgency & Social Engineering Keyword Scrutiny
+    message_lower = raw_message.lower()
+    urgency_keywords = [
+        "immediately", "within 24 hours", "today only", "tonight", "urgent", "urgently",
+        "blocked", "suspended", "terminated", "disconnect", "penalty", "deactivated",
+        "action required", "last notice", "final warning", "expired", "fine will be imposed"
+    ]
+    urgency_flags = [kw for kw in urgency_keywords if kw in message_lower]
+
+    financial_keywords = [
+        "sbi", "hdfc", "icici", "axis", "pnb", "bob", "yono", "kyc", "pan card", "aadhaar",
+        "otp", "atm card", "credit card", "debit card", "cvv", "bank account", "lottery",
+        "cash prize", "voucher", "won", "refund", "cashback", "reward points", "electricity power"
+    ]
+    financial_flags = [kw for kw in financial_keywords if kw in message_lower]
+
+    has_apk = (".apk" in message_lower) or any(".apk" in u.lower() for u in extracted_urls)
+    has_electricity = any(kw in message_lower for kw in ["electricity", "power cut", "power supply", "meter recharge", "light cut"])
+
+    # 4. Determine Scam Category
+    if has_apk:
+        scam_category = "Malicious Android APK Trojan"
+    elif has_electricity:
+        scam_category = "Electricity Power Disconnection Scam"
+    elif any(k in message_lower for k in ["lottery", "prize", "won", "voucher", "lucky"]):
+        scam_category = "Lottery / Reward Voucher Scam"
+    elif any(k in message_lower for k in ["kyc", "pan", "yono", "blocked", "bank", "sbi", "hdfc", "card"]):
+        scam_category = "Urgent Banking KYC / Account Phishing"
+    elif any(k in message_lower for k in ["parcel", "speedpost", "courier", "delivery", "post"]):
+        scam_category = "Courier / SpeedPost Delivery Scam"
+    elif any(k in message_lower for k in ["job", "work from home", "daily earn", "part time", "telegram task"]):
+        scam_category = "Work-From-Home / Task Fraud"
+    else:
+        scam_category = "General Communication"
+
+    # 5. Scan Extracted URLs
+    url_scan_results = []
+    any_phishing = False
+    highest_risk_score = 0.0
+
+    for u in extracted_urls:
+        try:
+            req_predict = URLRequest(url=u, client_type=f"{source}_msg_scan")
+            scan = predict_url(req_predict)
+            if scan.is_phishing:
+                any_phishing = True
+            if scan.hybrid_score > highest_risk_score:
+                highest_risk_score = scan.hybrid_score
+
+            url_scan_results.append({
+                "url": u,
+                "is_phishing": scan.is_phishing,
+                "risk_level": scan.risk_level,
+                "confidence": scan.confidence,
+                "hybrid_score": scan.hybrid_score,
+                "threat_category": scan.threat_category,
+                "ssl_valid": scan.ssl_info.get("valid", False),
+                "ssl_issuer": scan.ssl_info.get("issuer", "Unknown"),
+            })
+        except Exception as e:
+            url_scan_results.append({
+                "url": u,
+                "is_phishing": True,
+                "risk_level": "SUSPICIOUS (SCAN_ERROR)",
+                "confidence": 75.0,
+                "hybrid_score": 75.0,
+                "threat_category": "Unreachable / Suspicious Domain",
+                "ssl_valid": False,
+                "ssl_issuer": "N/A",
+                "error": str(e)
+            })
+            any_phishing = True
+            highest_risk_score = max(highest_risk_score, 75.0)
+
+    # 6. Trust Score Computation (0 - 100%)
+    trust_score = 80.0
+    trust_reasons = []
+    risk_reasons = []
+
+    # Sender evaluation
+    if has_dlt_header:
+        trust_score += 15.0
+        trust_reasons.append(f"Official DLT alphanumeric sender header verified: {sender}")
+    elif is_personal_mobile and (len(financial_flags) > 0 or has_electricity):
+        trust_score -= 45.0
+        risk_reasons.append("Bank or utility payment message received from a private 10-digit mobile number instead of an official corporate header.")
+
+    # Urgency pressure evaluation
+    if urgency_flags:
+        trust_score -= 18.0
+        risk_reasons.append(f"High-pressure urgency language detected: {', '.join(urgency_flags[:3])}")
+    else:
+        trust_reasons.append("No manipulative urgency or account threat tactics found in the text.")
+
+    # APK file alert
+    if has_apk:
+        trust_score -= 50.0
+        risk_reasons.append("Contains direct Android APK application download; high probability of spyware/banking trojan.")
+
+    # Link scan evaluation
+    if extracted_urls:
+        if any_phishing:
+            # Significant trust penalty
+            trust_score = min(trust_score, 100.0 - highest_risk_score)
+            trust_score = max(5.0, min(trust_score, 35.0))
+            risk_reasons.append(f"Dangerous link detected: CyberShield Hybrid AI flagged destination with risk score {highest_risk_score}%.")
+        else:
+            all_ssl = all(r.get("ssl_valid") for r in url_scan_results)
+            if all_ssl:
+                trust_score = min(99.0, trust_score + 15.0)
+                trust_reasons.append("All embedded links point to verified legitimate domains with valid SSL encryption.")
+            else:
+                trust_reasons.append("Destination domains are clean but lack enterprise SSL verification.")
+    else:
+        if is_personal_mobile and len(financial_flags) >= 2:
+            trust_score = 25.0
+            risk_reasons.append("Potential social engineering scam asking user to call back or reply with private details.")
+        else:
+            trust_reasons.append("No suspicious external hyperlinks detected in message body.")
+
+    trust_score = round(max(0.0, min(100.0, trust_score)), 1)
+
+    # 7. Final Verdict & Advisory Formulation
+    if any_phishing or trust_score < 45.0 or has_apk:
+        verdict = "MALICIOUS_SCAM"
+        recommended_action = "DO NOT CLICK LINK. Never provide OTP, PIN, or banking passwords. Delete and block sender immediately."
+        summary_advisory = f"CRITICAL ALERT: This {source.upper()} message exhibits strong indicators of fraudulent phishing ({scam_category}). Do NOT click any links."
+    elif trust_score < 75.0:
+        verdict = "CAUTION"
+        recommended_action = "Proceed with caution. Do not share confidential credentials. Verify directly through official portals."
+        summary_advisory = f"CAUTION: Unverified {source.upper()} sender. Even if no immediate malware is detected, double check with the authentic service provider."
+    else:
+        verdict = "VERIFIED_SAFE"
+        recommended_action = "Link and message appear authentic. Safe to view."
+        summary_advisory = f"SAFE: Verified legitimate communication. Domain and sender meet enterprise authentication standards."
+
+    return MessageAnalysisResponse(
+        source=source,
+        sender=sender,
+        sender_analysis=sender_analysis,
+        extracted_urls=extracted_urls,
+        url_scan_results=url_scan_results,
+        urgency_flags=urgency_flags,
+        financial_flags=financial_flags,
+        scam_category=scam_category,
+        trust_score=trust_score,
+        verdict=verdict,
+        trust_reasons=trust_reasons,
+        risk_reasons=risk_reasons,
+        recommended_action=recommended_action,
+        summary_advisory=summary_advisory
+    )
+
